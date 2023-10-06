@@ -1,0 +1,72 @@
+version: '3.8'
+
+services:
+  nginx:
+    container_name: server
+    build:
+      context: .nginx
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80"
+    links:
+      - app
+    depends_on: 
+      - app
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+
+  app:
+    container_name: 'api'
+    env_file: stack.env
+    build:
+      context: .
+      dockerfile: Dockerfile
+    expose:
+      - "${PORT}"
+    tty: true
+    links:
+      - mysql
+      - redis
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  mysql:
+    image: 'mysql:8'
+    container_name: db
+    env_file: stack.env
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASS}
+      MYSQL_DATABASE: "${DB_NAME}"
+      MYSQL_USER: "${DB_USER}"
+      MYSQL_PASSWORD: "${DB_PASSWORD}"
+    ports:
+      - 3308:3306
+    expose:
+      - "3306"
+    volumes:
+      - "db_data:/var/lib/mysql"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+
+  redis:
+    image: 'redis:alpine'
+    container_name: 'redis'
+    expose:
+      - "6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 60s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  db_data:

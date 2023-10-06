@@ -1,0 +1,151 @@
+# registry creds secret
+apiVersion: v1
+kind: Secret
+metadata:
+  name: docker-creds
+  namespace: <NAMESPACE>
+  labels:
+    app.kubernetes.io/name: web
+    app.kubernetes.io/component: backend
+    app.kubernetes.io/version: "1.0"
+data:
+  .dockerconfigjson: <encoded secret here>
+type: kubernetes.io/dockerconfigjson
+---
+# env variables configmap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backend-env
+  namespace: <NAMESPACE>
+  labels:
+    app.kubernetes.io/name: web
+    app.kubernetes.io/component: backend
+    app.kubernetes.io/version: "1.0"
+data:
+  HOST: "0.0.0.0"
+  PORT: "3000"
+  DB_HOST: ""
+  DB_USER: ""
+  DB_PASSWORD: ""
+  DB_NAME: ""
+  DB_PORT: ""
+  REDIS_ENABLE: ""
+  REDIS_URL: ""
+---
+# Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  labels:
+    app: backend
+    app.kubernetes.io/name: web
+    app.kubernetes.io/component: backend
+    app.kubernetes.io/version: "1.0"
+    tier: backend
+  namespace: <NAMESPACE>
+spec:
+  replicas: 2
+  # Change this to 3 in production deployment.
+  revisionHistoryLimit: 0
+  selector:
+    matchLabels:
+      app: backend
+      app.kubernetes.io/name: web
+      tier: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+        app.kubernetes.io/name: web
+        app.kubernetes.io/component: backend
+        app.kubernetes.io/version: "1.0"
+        tier: backend
+      annotations:
+        cluster-autoscaler.kubernetes.io/safe-to-evict: 'true'
+        config.linkerd.io/default-inbound-policy: all-unauthenticated
+        config.linkerd.io/opaque-ports: '3000'
+        config.linkerd.io/proxy-cpu-limit: '0.1'
+        config.linkerd.io/proxy-cpu-request: '0.1'
+        config.linkerd.io/proxy-memory-limit: 55Mi
+        config.linkerd.io/proxy-memory-request: 35Mi
+        config.linkerd.io/proxy-outbound-connect-timeout: 10000ms
+        linkerd.io/inject: disabled
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: "<hostname>"
+      containers:
+      - name: backend-instance
+        image: <IMAGE NAME:TAG>
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 3000
+          name: api
+          protocol: TCP
+        envFrom:
+        - configMapRef:
+            name: backend-env
+        resources:
+          requests:
+            cpu: "0.1"
+            memory: 128Mi
+          limits:
+            cpu: "0.3"
+            memory: 128Mi
+      imagePullSecrets:
+        - name: docker-creds
+---
+# Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-service
+  namespace: <NAMESPACE>
+  labels:
+    app.kubernetes.io/name: web
+    app.kubernetes.io/component: backend
+    app.kubernetes.io/version: "1.0"
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: 3000
+  selector:
+    app: backend
+    app.kubernetes.io/component: backend
+    tier: backend
+---
+# Ingress
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: backend-ingress
+  namespace: <NAMESPACE>
+  labels:
+    app.kubernetes.io/name: web
+    app.kubernetes.io/component: backend
+    app.kubernetes.io/version: "1.0"
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-staging-issuer
+    kubernetes.io/tls-acme: "true"
+    acme.cert-manager.io/http01-edit-in-place: "true"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: <HOSTNAME>
+      http:
+        paths:
+        - path: /
+          pathType: Prefix
+          backend:
+            service:
+              name: backend-service
+              port:
+                name: http
+  tls:
+  - hosts:
+    - <HOSTNAME>
+    secretName: dev-backend-tls
