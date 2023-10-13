@@ -18,8 +18,8 @@ module.exports = {
         connection: {
             host: process.env.DB_HOST || 'localhost',
             user: process.env.DB_USER || 'root',
-            password: process.env.DB_PASSWORD || '',
-            database: process.env.DB_NAME || 'arektacoinstore',
+            password: process.env.DB_PASSWORD || 'Password123#@!',
+            database: process.env.DB_NAME || 'node_boilerplate',
             port: process.env.DB_PORT || '3306'
         },
         asyncStackTraces: true,

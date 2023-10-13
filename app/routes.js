@@ -4,6 +4,7 @@ const authPublicRoutes = require('./auth/public')
 const authAdminRoutes = require('./auth/admin')
 const userAdminRoutes = require('./user/admin')
 const userCustomerRoutes = require('./user/customer')
+const productRoutes = require('./products')
 
 module.exports = async function (app) {
 	app.decorate('cache', cache(app.redis))
@@ -32,4 +33,5 @@ module.exports = async function (app) {
 		.register(authAdminRoutes, { prefix: '/v1/admin/auth' })
 		.register(userAdminRoutes, { prefix: '/v1/user/admin' })
 		.register(userCustomerRoutes, { prefix: '/v1/user/customer' })
+		.register(productRoutes, { prefix: '/v1/product/' })
 }

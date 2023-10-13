@@ -7,12 +7,12 @@ exports.seed = async function (knex) {
 	// pass is 123456
 	await knex('user_customers').insert([
 		{
-			email: 'customer@acs.com',
+			email: 'customer@gmail.com',
 			email_verified: true,
 			password: '$2a$10$mYKo/KMUnAWpS5hZkAmyyuwocUTNKv1dYrJC534cT7TJ/1.cSeSF2'
 		},
 		{
-			email: 'axel.tahmid@gmail.com',
+			email: 'jobayer@gmail.com',
 			email_verified: true,
 			password: '$2a$10$mYKo/KMUnAWpS5hZkAmyyuwocUTNKv1dYrJC534cT7TJ/1.cSeSF2'
 		}
